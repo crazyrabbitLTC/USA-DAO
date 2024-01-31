@@ -198,4 +198,76 @@ describe("Citizenship Token", function () {
     });
   });
 
+  describe.only("Custom Token URI Management", function () {
+    beforeEach(async function () {
+      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipFixture);
+      this.citizenship = citizenshipProxy;
+      this.admin = admin;
+      this.otherUser = signers[1];
+      // Mint a token to test with
+      await this.citizenship.connect(this.admin).safeMint(this.otherUser.address, "initialURI");
+      this.tokenId = 0; // Assuming this is the first token minted in the tests
+    });
+
+    it("Allows URI update by authorized role", async function () {
+      const newURI = "https://example.com/new-uri";
+      // Grant URI_UPDATE_ROLE to admin if not already done
+      await expect(this.citizenship.connect(this.admin).setTokenURI(this.tokenId, newURI))
+        .to.emit(this.citizenship, "TokenURIUpdated")
+        .withArgs(this.tokenId, newURI, this.otherUser.address);
+
+      expect(await this.citizenship.tokenURI(this.tokenId)).to.equal(newURI);
+    });
+
+    it("Prevents URI update by unauthorized users", async function () {
+      const newURI = "https://example.com/unauthorized-update";
+      await expect(this.citizenship.connect(this.otherUser).setTokenURI(this.tokenId, newURI))
+        .to.be.revertedWithCustomError(this.citizenship, "CallerDoesNotHavePermission");
+
+      // Verify the URI has not been updated
+      expect(await this.citizenship.tokenURI(this.tokenId)).not.to.equal(newURI);
+    });
+
+    it("Preserves default URI behavior for tokens without a custom URI", async function () {
+      // Assuming the default URI includes the token ID
+      const expectedDefaultURI = "https://example.com/initialURI";
+      // Mint a new token without setting a custom URI
+      const newTokenId = 1;
+      await this.citizenship.connect(this.admin).safeMint(this.otherUser.address, expectedDefaultURI);
+      expect(await this.citizenship.tokenURI(newTokenId)).to.equal(expectedDefaultURI);
+    });
+
+    it("Overrides only the specified token's URI without affecting others", async function () {
+      const customURIForToken0 = "https://example.com/custom-uri-0";
+      const initialURIForToken1 = "https://example.com/initial-uri-1";
+      // Set custom URI for tokenId 0
+      await this.citizenship.connect(this.admin).setTokenURI(this.tokenId, customURIForToken0);
+      // Mint another token
+      const newTokenId = 1;
+      await this.citizenship.connect(this.admin).safeMint(this.otherUser.address, initialURIForToken1);
+
+      // Verify that token 0 has a custom URI and token 1 has its initial URI
+      expect(await this.citizenship.tokenURI(this.tokenId)).to.equal(customURIForToken0);
+      expect(await this.citizenship.tokenURI(newTokenId)).to.equal(initialURIForToken1);
+    });
+
+    it("Correctly emits TokenURIUpdated event", async function () {
+      const newURI = "https://example.com/emitted-uri";
+      await expect(this.citizenship.connect(this.admin).setTokenURI(this.tokenId, newURI))
+        .to.emit(this.citizenship, "TokenURIUpdated")
+        .withArgs(this.tokenId, newURI, this.otherUser.address);
+    });
+
+    it("Ensures custom URI persists through transfers", async function () {
+      const customURI = "https://example.com/persistent-uri";
+      await this.citizenship.connect(this.admin).setTokenURI(this.tokenId, customURI);
+      // Transfer token
+      await this.citizenship.connect(this.admin).toggleTransferability(true); // Ensure transferability is enabled
+      await this.citizenship.connect(this.otherUser).transferFrom(this.otherUser.address, this.admin.address, this.tokenId);
+      // Verify URI persists
+      expect(await this.citizenship.tokenURI(this.tokenId)).to.equal(customURI);
+    });
+  })
+
+
 })

@@ -24,6 +24,7 @@ contract Citizenship is
 {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant URI_UPDATE_ROLE = keccak256("URI_UPDATE_ROLE");
     bytes32 public constant ENABLE_TRANSFER_ROLE = keccak256("ENABLE_TRANSFER_ROLE");
     bytes32 public constant ENABLE_BURNING_ROLE = keccak256("ENABLE_BURNING_ROLE");
 
@@ -33,9 +34,14 @@ contract Citizenship is
     bool private _isTransferable;
     bool private _isBurnable;
 
+    // custom URIs
+    mapping(uint256 => string) private _customTokenURIs;
+
+
     // Event for toggling transferability and burnability of all tokens
     event TransferabilityToggled(bool transferable);
     event BurnabilityToggled(bool burnable);
+    event TokenURIUpdated(uint256 indexed tokenId, string tokenURI, address owner);
 
     error TokenNonTransferable();
     error TokenNonBurnable();
@@ -43,6 +49,7 @@ contract Citizenship is
     error CallerDoesNotHaveTransferEnableRole();
     error CallerDoesNotHavePermission();
     error BurningTokensIsDisabled();
+    error InvalidTokenId();
 
     constructor() {
         _disableInitializers();
@@ -67,6 +74,7 @@ contract Citizenship is
         _grantRole(MINTER_ROLE, initialAuthority);
         _grantRole(ENABLE_TRANSFER_ROLE, initialAuthority);
         _grantRole(ENABLE_BURNING_ROLE, initialAuthority);
+        _grantRole(URI_UPDATE_ROLE, initialAuthority);
     }
 
     function pause() public {
@@ -83,6 +91,25 @@ contract Citizenship is
         if (!hasRole(ENABLE_TRANSFER_ROLE, _msgSender())) revert CallerDoesNotHaveTransferEnableRole();
         _isTransferable = transferable;
         emit TransferabilityToggled(transferable);
+    }
+
+
+    function setTokenURI(uint256 tokenId, string memory uri) public {
+        if(!hasRole(URI_UPDATE_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
+        if(ownerOf(tokenId) == address(0)) revert InvalidTokenId();
+
+        _customTokenURIs[tokenId] = uri;
+
+        emit TokenURIUpdated(tokenId, uri, ownerOf(tokenId));
+    }
+
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721Upgradeable, ERC721URIStorageUpgradeable) returns (string memory) {
+        //if a custom uri has been set, return that URI
+        if (bytes(_customTokenURIs[tokenId]).length > 0) return _customTokenURIs[tokenId];
+
+        return super.tokenURI(tokenId);
     }
 
     function toggleBurnability(bool burnable) public {
@@ -126,12 +153,6 @@ contract Citizenship is
         uint128 value
     ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721VotesUpgradeable) {
         super._increaseBalance(account, value);
-    }
-
-    function tokenURI(
-        uint256 tokenId
-    ) public view override(ERC721Upgradeable, ERC721URIStorageUpgradeable) returns (string memory) {
-        return super.tokenURI(tokenId);
     }
 
     function supportsInterface(
