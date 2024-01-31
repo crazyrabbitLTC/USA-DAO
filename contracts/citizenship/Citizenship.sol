@@ -101,14 +101,13 @@ contract Citizenship is
 
     // Function to burn a token
     function burnToken(uint256 tokenId) public {
-        if (!_isTransferable) revert BurningTokensIsDisabled();
+        if (!_isBurnable) revert BurningTokensIsDisabled();
         if (!(getApproved(tokenId) == _msgSender())) revert CallerDoesNotHavePermission();
 
         _burn(tokenId);
     }
 
     // The following functions are overrides required by Solidity.
-
     function _update(
         address to,
         uint256 tokenId,

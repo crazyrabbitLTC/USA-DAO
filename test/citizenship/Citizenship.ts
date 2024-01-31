@@ -133,4 +133,69 @@ describe("Citizenship Token", function () {
 
   });
 
+  describe("Edge Cases", function () {
+    beforeEach(async function () {
+      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipFixture);
+      this.citizenship = citizenshipProxy;
+      this.admin = admin;
+      this.otherUser = signers[1];
+    });
+
+    it("Should not allow transferring to zero address, even if transferable", async function () {
+      // Enable transferability
+      await this.citizenship.connect(this.admin).toggleTransferability(true);
+
+      // Mint token to admin
+      await this.citizenship.connect(this.admin).safeMint(this.admin.address, "URI");
+
+      // Attempt to transfer token to zero address
+      await expect(
+        this.citizenship.connect(this.admin).transferFrom(this.admin.address, ethers.ZeroAddress, 0)
+      ).to.be.reverted
+    });
+
+    it("Minting to zero address should fail", async function () {
+      // Attempt to mint token to zero address
+      await expect(
+        this.citizenship.connect(this.admin).safeMint(ethers.ZeroAddress, "URI")
+      ).to.be.reverted
+    });
+
+    it("Toggling transferability does not affect existing tokens", async function () {
+      // Disable transferability
+      await this.citizenship.connect(this.admin).toggleTransferability(false);
+
+      // Mint token to otherUser
+      await this.citizenship.connect(this.admin).safeMint(this.otherUser.address, "URI");
+
+      // Enable transferability
+      await this.citizenship.connect(this.admin).toggleTransferability(true);
+
+      // Verify otherUser can still transfer the token
+      await expect(
+        this.citizenship.connect(this.otherUser).transferFrom(this.otherUser.address, this.admin.address, 0)
+      ).to.emit(this.citizenship, 'Transfer').withArgs(this.otherUser.address, this.admin.address, 0);
+    });
+
+    it("Roles cannot be arbitrarily assigned", async function () {
+      // Attempt to grant MINTER_ROLE to otherUser without having DEFAULT_ADMIN_ROLE privileges
+      await expect(
+        this.citizenship.connect(this.otherUser).grantRole(ethers.id("MINTER_ROLE"), this.otherUser.address)
+      ).to.be.revertedWithCustomError(this.citizenship, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Burning a token respects burnability flag", async function () {
+      // Mint token first
+      await this.citizenship.connect(this.admin).safeMint(this.otherUser.address, "URI");
+
+      // Disable burning
+      await this.citizenship.connect(this.admin).toggleBurnability(false);
+
+      // Attempt to burn token
+      await expect(
+        this.citizenship.connect(this.otherUser).burnToken(0)
+      ).to.be.revertedWithCustomError(this.citizenship, "BurningTokensIsDisabled");
+    });
+  });
+
 })
