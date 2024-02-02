@@ -11,6 +11,7 @@ import "./tasks/lock";
 
 const mnemonic: string = vars.get("MNEMONIC");
 const infuraApiKey: string = vars.get("INFURA_API_KEY");
+const alchemyApiKey: string = vars.get("ALCHEMY_API_KEY");
 
 const chainIds = {
   "arbitrum-mainnet": 42161,
@@ -73,6 +74,11 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      forking: {
+        // eslint-disable-next-line
+        enabled: true,
+        url: `https://base-mainnet.g.alchemy.com/v2/${alchemyApiKey}`,
+      },
       accounts: {
         mnemonic,
       },

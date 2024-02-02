@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface IVerifier {
     /// @notice Checks if the attestation data for a given address matches a specific country symbol
@@ -24,7 +25,7 @@ interface ICitizenshipToken {
     function symbol() external view returns (string memory);
 }
 
-contract StateDepartment is Initializable, AccessControlUpgradeable {
+contract StateDepartment is Initializable, AccessControlUpgradeable, ReentrancyGuard {
     ICitizenshipToken public citizenshipToken;
     IVerifier public verifier;
 
@@ -33,10 +34,14 @@ contract StateDepartment is Initializable, AccessControlUpgradeable {
     bool public isPaused;
 
     error NotEligibleForCitizenship();
+    error AlreadyClaimedCitizenship();
     error CallerNotAdmin();
+    error ContractPaused();
 
     event CitizenshipClaimed(address indexed user);
     event Paused(bool isPaused);
+
+    mapping(address => bool) public citizenshipClaimed;
 
     function initialize(
         address _citizenshipTokenAddress,
@@ -53,13 +58,18 @@ contract StateDepartment is Initializable, AccessControlUpgradeable {
     }
 
     function togglePause() public {
-        if(!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) revert CallerNotAdmin();
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) revert CallerNotAdmin();
         isPaused = !isPaused;
         emit Paused(isPaused);
     }
 
-    function claimCitizenship() public {
+    function claimCitizenship() public nonReentrant {
+        if (isPaused) revert ContractPaused();
         if (!canClaimCitizenship(msg.sender)) revert NotEligibleForCitizenship();
+        if (citizenshipClaimed[msg.sender]) revert AlreadyClaimedCitizenship();
+
+        citizenshipClaimed[msg.sender] = true; // prevent reentrancy
+
         citizenshipToken.safeMint(msg.sender, defaultURI);
         emit CitizenshipClaimed(msg.sender);
     }
@@ -68,5 +78,4 @@ contract StateDepartment is Initializable, AccessControlUpgradeable {
         string memory tokenSymbol = citizenshipToken.symbol();
         return verifier.isCountry(_user, tokenSymbol);
     }
-
 }
