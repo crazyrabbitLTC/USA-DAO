@@ -198,7 +198,7 @@ describe("Citizenship Token", function () {
     });
   });
 
-  describe.only("Custom Token URI Management", function () {
+  describe("Custom Token URI Management", function () {
     beforeEach(async function () {
       const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipFixture);
       this.citizenship = citizenshipProxy;

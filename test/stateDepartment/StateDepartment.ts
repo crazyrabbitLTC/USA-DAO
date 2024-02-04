@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { deployStateDepartmentFixture } from "./StateDepartment.fixture";
 
-describe.only("StateDepartment Contract", function () {
+describe("StateDepartment Contract", function () {
   before(async function () {
     const signers = await ethers.getSigners();
     this.admin = signers[0];
