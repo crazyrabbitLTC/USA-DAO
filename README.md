@@ -1,3 +1,63 @@
+Certainly! Below is the updated README in Markdown format, including details about the verifier checking on-chain attestations made by Coinbase on the Base network, along with the requested credit.
+
+---
+
+# Citizenship and Commemorative Edition Smart Contracts with State Department Integration
+
+This project harnesses Hardhat for the development of a comprehensive blockchain-based citizenship system. It encompasses smart contracts for issuing, managing citizenship as NFTs (Non-Fungible Tokens), a verifier for attestation-based eligibility checks, a commemorative edition contract for special citizenship tokens editions, and a State Department contract for managing citizenship claims based on eligibility criteria.
+
+## Project Overview
+
+The project comprises four primary smart contracts:
+
+1. **Citizenship Contract**: An ERC721 token representing digital citizenship, featuring pausing, minting, burning, and token URI updates, governed by specific roles.
+2. **Verifier Contract**: Interacts with external attestation systems to verify user eligibility for citizenship based on predefined criteria. Specifically, it checks on-chain attestations made by Coinbase on the Base network, enabling a secure and decentralized mechanism for verifying user information against trusted attestations.
+3. **Commemorative Edition Contract**: Allows updating of token URIs for special editions, leveraging EIP-712 signed messages for secure, off-chain communication between parties, ensuring authenticity and integrity of the requests.
+4. **State Department Contract**: Manages the eligibility and claims for citizenship tokens based on the verification process handled by the Verifier Contract. It integrates directly with the Citizenship Contract to mint tokens for eligible users.
+
+## Roles and Permissions
+
+The system utilizes Access Control roles for managing permissions across different functionalities:
+
+- **Admin Role**: Full access to the system, capable of setting other roles, updating fees, and pausing the system.
+- **Minter Role**: Granted to the State Department Contract to mint new citizenship tokens upon successful verification.
+- **URI Updater Role**: Specific to the Commemorative Edition Contract for updating token URIs securely.
+
+## Testing and Deployment
+
+The project includes a comprehensive suite of tests, demonstrating the functionality of each contract and the interactions between them. Testing leverages Hardhat's network forking feature to simulate real-world interactions on a local test network, ensuring thorough coverage and reliability.
+
+### Setup for Testing
+
+- Set up the roles properly by granting the necessary permissions using the `grantRole` function.
+- Use Hardhat's network forking to test against the Base Mainnet, allowing you to interact with deployed contracts such as the Coinbase attestation verifier without deploying to the main network.
+- Ensure environment variables are correctly configured for network access and contract interactions.
+
+### Running Tests
+
+Tests can be run using Hardhat commands, focusing on each contract's functionality and integration points:
+
+```shell
+npx hardhat test
+```
+
+This command runs all tests, verifying contract interactions, role-based access control, and integration logic.
+
+## How It Works
+
+- The **Verifier Contract** checks user eligibility for citizenship by verifying on-chain attestations from Coinbase on the Base network.
+- Eligible users claim their citizenship through the **State Department Contract**, which mints a new citizenship token.
+- Special editions of citizenship tokens can be issued through the **Commemorative Edition Contract**, with URI updates signed securely off-chain.
+- The system is designed with extensibility and security in mind, ensuring that only eligible users can claim citizenship and that token metadata can be securely updated as needed.
+
+## Getting Started
+
+To start working with these contracts, clone the repository, install dependencies, and follow the setup instructions to configure your environment. Ensure you have access to Alchemy or Infura for network access and have set up your `.env` file with the necessary API keys and secrets.
+
+---
+
+Made with love by Dennison Bertram and ChatGPT.
+
 # Hardhat Template [![Open in Gitpod][gitpod-badge]][gitpod] [![Github Actions][gha-badge]][gha] [![Hardhat][hardhat-badge]][hardhat] [![License: MIT][license-badge]][license]
 
 [gitpod]: https://gitpod.io/#https://github.com/paulrberg/hardhat-template
