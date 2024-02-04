@@ -29,6 +29,7 @@ contract CommemorativeEdition is Initializable, AccessControlUpgradeable, EIP712
     error Unauthorized();
     error InvalidSignature();
     error InsufficientFee();
+    error InsufficientBalance();
     error NoTokenOwned();
     error ContractPaused();
 
@@ -87,8 +88,8 @@ contract CommemorativeEdition is Initializable, AccessControlUpgradeable, EIP712
 
     function withdraw(address to, uint256 amount) external {
         if (!hasRole(WITHDRAWER_ROLE, msg.sender)) revert Unauthorized();
-        require(address(this).balance >= amount, "Insufficient balance");
-        (bool success, ) = to.call{ value: amount }("");
+        if(address(this).balance < amount) revert InsufficientBalance();
+        (bool success, ) = to.call{ value: amount }(""); //todo: check if this is safe to do
         require(success, "Failed to withdraw");
         emit Withdrawal(to, amount);
     }

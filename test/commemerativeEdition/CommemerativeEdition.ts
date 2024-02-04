@@ -9,7 +9,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { StateDepartment } from "../../types";
 import { Citizenship } from "../../types/contracts/citizenship/Citizenship.sol";
 
-describe("CommemorativeEdition Contract", function () {
+describe.only("CommemorativeEdition Contract", function () {
   let admin: Signer;
   let otherUser: Signer;
   let commemorativeEdition: CommemorativeEdition;
@@ -50,10 +50,10 @@ describe("CommemorativeEdition Contract", function () {
 
       const exampleUser = await ethers.getSigner(exampleUserAddress);
 
-       // Claim citizenship
-       await expect(stateDepartment.connect(exampleUser)
-       .claimCitizenship()).to.emit(stateDepartment, "CitizenshipClaimed")
-       .to.emit(citizenship, "Transfer").withArgs(ethers.ZeroAddress, exampleUser.address, 0);
+      // Claim citizenship
+      await expect(stateDepartment.connect(exampleUser)
+        .claimCitizenship()).to.emit(stateDepartment, "CitizenshipClaimed")
+        .to.emit(citizenship, "Transfer").withArgs(ethers.ZeroAddress, exampleUser.address, 0);
 
       const newURI = "https://example.com/new-uri";
       // EIP-712 signing
@@ -84,13 +84,56 @@ describe("CommemorativeEdition Contract", function () {
     });
 
     it("should fail if the fee is not paid", async function () {
-      const newURI = "https://example.com/new-uri-without-fee";
-      const signature = await admin.signMessage(ethers.arrayify(ethers.keccak256(ethers.toUtf8Bytes(newURI))));
-      const user = otherUser as unknown as Signer; // Cast for compatibility
+      // Mint a token
+      //impersonate a US user
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [exampleUserAddress],
+      });
 
-      await expect(commemorativeEdition.connect(user).updateURI(newURI, signature))
-        .to.be.revertedWith("InsufficientFee");
+
+      // send funds to the user.
+      await admin.sendTransaction({  //   create  transaction
+        to: exampleUserAddress,
+        value: ethers.parseEther("1"),
+      });
+
+
+      const exampleUser = await ethers.getSigner(exampleUserAddress);
+
+      // Claim citizenship
+      await expect(stateDepartment.connect(exampleUser)
+        .claimCitizenship()).to.emit(stateDepartment, "CitizenshipClaimed")
+        .to.emit(citizenship, "Transfer").withArgs(ethers.ZeroAddress, exampleUser.address, 0);
+
+      const newURI = "https://example.com/new-uri";
+      // EIP-712 signing
+      const domain = {
+        name: "CommemorativeEdition",
+        version: "1",
+        chainId: parseInt(await network.provider.request({ method: "eth_chainId" }) as string, 16),
+        verifyingContract: await commemorativeEdition.getAddress(),
+      };
+
+      const types = {
+        URI: [
+          { name: "uri", type: "string" },
+          { name: "tokenId", type: "uint256" }
+        ],
+      };
+
+      const value = {
+        uri: newURI,
+        tokenId: tokenId,
+      };
+
+      const signature = await admin.signTypedData(domain, types, value);
+
+      await expect(commemorativeEdition.connect(exampleUser).updateURI(tokenId, newURI, signature, { value: 0 }))
+        .to.be.revertedWithCustomError(commemorativeEdition, "InsufficientFee");
     });
+
+
   });
 
   describe("Fee Management", function () {
@@ -104,15 +147,24 @@ describe("CommemorativeEdition Contract", function () {
     it("should prevent non-admins from setting a new fee", async function () {
       const newFee = ethers.parseEther("0.02");
       await expect(commemorativeEdition.connect(otherUser).setFee(newFee))
-        .to.be.revertedWith("Unauthorized");
+        .to.be.revertedWithCustomError(commemorativeEdition, "Unauthorized");
     });
   });
 
   describe("Withdrawal", function () {
     it("should allow the admin to withdraw contract balance", async function () {
+      
+      // send funds to the contract
+      await admin.sendTransaction({  //   create  transaction
+        to: await commemorativeEdition.getAddress(),
+        value: ethers.parseEther("1"),
+      });
       const balanceBefore = await ethers.provider.getBalance(await admin.getAddress());
       const withdrawAmount = ethers.parseEther("0.01");
 
+
+
+      // try to withdraw
       await expect(commemorativeEdition.connect(admin).withdraw(await admin.getAddress(), withdrawAmount))
         .to.emit(commemorativeEdition, "Withdrawal")
         .withArgs(await admin.getAddress(), withdrawAmount);
@@ -124,7 +176,7 @@ describe("CommemorativeEdition Contract", function () {
     it("should prevent non-admins from withdrawing contract balance", async function () {
       const withdrawAmount = ethers.parseEther("0.01");
       await expect(commemorativeEdition.connect(otherUser).withdraw(await otherUser.getAddress(), withdrawAmount))
-        .to.be.revertedWith("Unauthorized");
+        .to.be.revertedWithCustomError(commemorativeEdition, "Unauthorized");
     });
   });
 });
