@@ -9,7 +9,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { StateDepartment } from "../../types";
 import { Citizenship } from "../../types/contracts/citizenship/Citizenship.sol";
 
-describe.only("CommemorativeEdition Contract", function () {
+describe("CommemorativeEdition Contract", function () {
   let admin: Signer;
   let otherUser: Signer;
   let commemorativeEdition: CommemorativeEdition;
@@ -153,7 +153,7 @@ describe.only("CommemorativeEdition Contract", function () {
 
   describe("Withdrawal", function () {
     it("should allow the admin to withdraw contract balance", async function () {
-      
+
       // send funds to the contract
       await admin.sendTransaction({  //   create  transaction
         to: await commemorativeEdition.getAddress(),
