@@ -1,6 +1,4 @@
-Certainly! Below is the updated README in Markdown format, including details about the verifier checking on-chain attestations made by Coinbase on the Base network, along with the requested credit.
 
----
 
 # Citizenship and Commemorative Edition Smart Contracts with State Department Integration
 
