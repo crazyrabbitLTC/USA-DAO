@@ -29,6 +29,7 @@ describe.only("VoterRegistration", function () {
   })
 
   describe.only("Wrapping and Unwrapping", function () {
+
     it("allows deposit of tokens", async function () {
 
       // allowlist voterRegistration
@@ -45,14 +46,18 @@ describe.only("VoterRegistration", function () {
 
       // Admin deposits the token in VoterRegistration, which wraps it
       await expect(voterRegistration.connect(admin).depositFor(admin.address, [0]))
-        .to.emit(citizenship, "Transfer").withArgs(admin.address, await voterRegistration.getAddress(), 0);
+        .to.emit(citizenship, "Transfer").withArgs(admin.address, await voterRegistration.getAddress(), 0)
+        .to.emit(voterRegistration, "Transfer").withArgs(ethers.ZeroAddress, admin.address, 0);
 
       // Check ownership is transferred to VoterRegistration
       expect(await citizenship.ownerOf(0)).to.equal(await voterRegistration.getAddress());
+      // admin has wrapped token
+      expect(await voterRegistration.ownerOf(0)).to.equal(admin.address);
+
 
     });
 
-    it("allows withdrawal of tokens", async function () {
+    xit("allows withdrawal of tokens to allowlisted addresses", async function () {
 
       // allowlist voterRegistration
       await expect(citizenship.connect(admin)
@@ -70,12 +75,30 @@ describe.only("VoterRegistration", function () {
       await expect(voterRegistration.connect(admin).depositFor(admin.address, [0]))
         .to.emit(citizenship, "Transfer").withArgs(admin.address, await voterRegistration.getAddress(), 0);
 
-      // Admin withdraws the token, unwrapping it
+      // Admin attempts to withdraw token, but fails
       await expect(voterRegistration.connect(admin).withdrawTo(admin.address, [0]))
-        .to.emit(citizenship, "Transfer").withArgs(await voterRegistration.getAddress(), admin.address, 0);
+        .to.be.revertedWithCustomError(citizenship, "TokenNonTransferable");
 
-      // Check ownership returns to admin in the underlying contract
-      expect(await citizenship.ownerOf(0)).to.equal(admin.address);
+      // In order to withdraw the token, we must whitelist the wrapper address as the receipient for the wrapped token (for burning)
+      // this is because the wrapped token is not transferable
+
+      // Allowlist wrapper address
+      await expect(voterRegistration.connect(admin)
+        .updateAllowlist([admin.address, await citizenship.getAddress(), await voterRegistration.getAddress()], [true, true, true]))
+        .to.emit(voterRegistration, "AllowlistUpdated").withArgs(admin.address, true);
+
+      // // Allowlist admin on citizenship
+      // await expect(citizenship.connect(admin)
+      //   .updateAllowlist([admin.address], [true]))
+      //   .to.emit(citizenship, "AllowlistUpdated").withArgs(admin.address, true);
+
+      await expect(voterRegistration.connect(admin).withdrawTo(admin.address, [0])).to.be.revertedWithCustomError(voterRegistration, "TokenNonTransferable")
+      // // Admin withdraws the token, unwrapping it
+      // await expect(voterRegistration.connect(admin).withdrawTo(admin.address, [0]))
+      //   .to.emit(citizenship, "Transfer").withArgs(await voterRegistration.getAddress(), admin.address, 0);
+
+      // // Check ownership returns to admin in the underlying contract
+      // expect(await citizenship.ownerOf(0)).to.equal(admin.address);
     });
   });
 

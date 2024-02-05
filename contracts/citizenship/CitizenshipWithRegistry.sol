@@ -3,12 +3,17 @@ pragma solidity ^0.8.20;
 
 import "./Citizenship.sol";
 
+import "hardhat/console.sol";
+
 contract CitizenshipWithRegistry is Citizenship {
     mapping(address => bool) public allowlistedDestination;
 
     bytes32 public constant ALLOWLIST_MANAGER_ROLE = keccak256("ALLOWLIST_MANAGER_ROLE");
 
     event AllowlistUpdated(address indexed destination, bool allowlisted);
+
+    error AddressesAndStatusesLengthMismatch();
+
 
     // Initializes the contract, sets up initial allowlisted destinations, and configures roles
     function initialize(
@@ -29,8 +34,8 @@ contract CitizenshipWithRegistry is Citizenship {
 
     // Batch updates the allowlist status of addresses
     function updateAllowlist(address[] calldata addresses, bool[] calldata statuses) public {
-        require(hasRole(ALLOWLIST_MANAGER_ROLE, msg.sender), "Caller is not authorized");
-        require(addresses.length == statuses.length, "Addresses and statuses length mismatch");
+        if (!hasRole(ALLOWLIST_MANAGER_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
+        if (addresses.length != statuses.length) revert AddressesAndStatusesLengthMismatch();
 
         for (uint i = 0; i < addresses.length; i++) {
             allowlistedDestination[addresses[i]] = statuses[i];

@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 
 import type { Signers } from "../types";
 import { deployCitizenshipWithRegistryFixture } from "./CitizenshipWithRegistry.fixture";
-describe("Citizenship With Registry", function () {
+describe.only("Citizenship With Registry", function () {
 
   before(async function () {
     this.signers = {} as Signers;
@@ -155,6 +155,66 @@ describe("Citizenship With Registry", function () {
         .to.be.revertedWithCustomError(this.citizenship, "TokenNonTransferable");
     });
 
+    it("Prevents transferring to non-allowlisted addresses when global transferability is off", async function () {
+      // Ensure global transferability is off
+      await this.citizenship.connect(this.admin).toggleTransferability(false);
+
+      // Allowlist thirdUser but attempt to transfer to a non-allowlisted address
+      await this.citizenship.connect(this.admin).updateAllowlist([this.thirdUser.address], [true]);
+
+      // Mint token to admin
+      await this.citizenship.connect(this.admin).safeMint(this.admin.address, "URI");
+
+      // Attempt to transfer token to a non-allowlisted address should fail
+      await expect(this.citizenship.connect(this.admin).transferFrom(this.admin.address, this.otherUser.address, 0))
+        .to.be.revertedWithCustomError(this.citizenship, "TokenNonTransferable");
+    });
+
+    it("Revokes allowlisted status and prevents transfers to it when non-transferable", async function () {
+      // Disable transferability
+      await this.citizenship.connect(this.admin).toggleTransferability(false);
+
+      // Initially allowlist thirdUser
+      await this.citizenship.connect(this.admin).updateAllowlist([this.thirdUser.address], [true]);
+
+      // Revoke allowlist status
+      await this.citizenship.connect(this.admin).updateAllowlist([this.thirdUser.address], [false]);
+
+      // Mint token
+      await this.citizenship.connect(this.admin).safeMint(this.admin.address, "URI");
+
+      // Attempting to transfer to thirdUser should fail
+      await expect(this.citizenship.connect(this.admin).transferFrom(this.admin.address, this.thirdUser.address, 0))
+        .to.be.revertedWithCustomError(this.citizenship, "TokenNonTransferable");
+    });
+
+    it("Changing allowlist status does not affect ownership of already owned tokens", async function () {
+      // Disable transferability
+      await this.citizenship.connect(this.admin).toggleTransferability(false);
+
+      // Allowlist thirdUser and mint a token directly to them
+      await this.citizenship.connect(this.admin).updateAllowlist([this.thirdUser.address], [true]);
+      await this.citizenship.connect(this.admin).safeMint(this.thirdUser.address, "URI");
+
+      // Revoke allowlist status
+      await this.citizenship.connect(this.admin).updateAllowlist([this.thirdUser.address], [false]);
+
+      // The thirdUser should still own the token
+      expect(await this.citizenship.ownerOf(0)).to.equal(this.thirdUser.address);
+    });
+
+    it("Prevents transferring token back to non-allowlisted address when transferability is off", async function () {
+      // Ensure global transferability is off
+      await this.citizenship.connect(this.admin).toggleTransferability(false);
+
+      // Allowlist thirdUser and mint a token to them
+      await this.citizenship.connect(this.admin).updateAllowlist([this.thirdUser.address], [true]);
+      await this.citizenship.connect(this.admin).safeMint(this.thirdUser.address, "URI");
+
+      // Attempt to transfer token back to admin (non-allowlisted) should fail
+      await expect(this.citizenship.connect(this.thirdUser).transferFrom(this.thirdUser.address, this.admin.address, 0))
+        .to.be.revertedWithCustomError(this.citizenship, "TokenNonTransferable");
+    });
 
 
     it("Unauthorized users cannot toggle transferability", async function () {
