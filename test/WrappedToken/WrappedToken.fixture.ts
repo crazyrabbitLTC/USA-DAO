@@ -1,15 +1,16 @@
 import { ethers } from "hardhat";
 import type { SimpleFactory } from "../../types/SimpleFactory";
 import type { SimpleFactory__factory } from "../../types/factories/SimpleFactory__factory";
-import { deployCitizenshipFixture } from "../citizenship/Citizenship.fixture";
 import type { VoterRegistration__factory } from "../../types/factories/VoterRegistration__factory";
 import type { VoterRegistration } from "../../types/VoterRegistration";
+
+import { deployCitizenshipWithRegistryFixture } from "../citizenship/CitizenshipWithRegistry.fixture";
 
 export async function deployWrappedTokenFixture() {
   const signers = await ethers.getSigners();
   const admin = signers[0];
 
-  const { citizenshipProxy } = await deployCitizenshipFixture();
+  const { citizenshipProxy } = await deployCitizenshipWithRegistryFixture();
 
 
   // Deploy the wrapper contract (VoterRegistration)
@@ -28,6 +29,9 @@ export async function deployWrappedTokenFixture() {
 
   const clonedImplementation = await simpleFactory.latestClone();
   const voterRegistrationProxy = voterRegistrationBase.attach(clonedImplementation);
+
+  // Update citizenshipProxy to allowlist the voterRegistrationProxy
+
 
 
 

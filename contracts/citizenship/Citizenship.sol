@@ -31,12 +31,11 @@ contract Citizenship is
     uint256 private _nextTokenId;
 
     // Global state variables for all tokens
-    bool private _isTransferable;
-    bool private _isBurnable;
+    bool public _isTransferable;
+    bool public _isBurnable;
 
     // custom URIs
     mapping(uint256 => string) private _customTokenURIs;
-
 
     // Event for toggling transferability and burnability of all tokens
     event TransferabilityToggled(bool transferable);
@@ -59,7 +58,29 @@ contract Citizenship is
         address initialAuthority,
         string calldata tokenName,
         string calldata tokenSymbol
-    ) public initializer {
+    ) public virtual initializer {
+        __ERC721_init(tokenName, tokenSymbol);
+        __ERC721Enumerable_init();
+        __ERC721URIStorage_init();
+        __ERC721Pausable_init();
+        __AccessControl_init();
+        __ERC721Burnable_init();
+        __EIP712_init(tokenName, "1");
+        __ERC721Votes_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, initialAuthority);
+        _grantRole(PAUSER_ROLE, initialAuthority);
+        _grantRole(MINTER_ROLE, initialAuthority);
+        _grantRole(ENABLE_TRANSFER_ROLE, initialAuthority);
+        _grantRole(ENABLE_BURNING_ROLE, initialAuthority);
+        _grantRole(URI_UPDATE_ROLE, initialAuthority);
+    }
+
+    function __initialize(
+        address initialAuthority,
+        string calldata tokenName,
+        string calldata tokenSymbol
+    ) public virtual onlyInitializing {
         __ERC721_init(tokenName, tokenSymbol);
         __ERC721Enumerable_init();
         __ERC721URIStorage_init();
@@ -93,10 +114,9 @@ contract Citizenship is
         emit TransferabilityToggled(transferable);
     }
 
-
     function setTokenURI(uint256 tokenId, string memory uri) public {
-        if(!hasRole(URI_UPDATE_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
-        if(ownerOf(tokenId) == address(0)) revert InvalidTokenId();
+        if (!hasRole(URI_UPDATE_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
+        if (ownerOf(tokenId) == address(0)) revert InvalidTokenId();
 
         _customTokenURIs[tokenId] = uri;
 
@@ -134,6 +154,11 @@ contract Citizenship is
         _burn(tokenId);
     }
 
+    function _beforeTokenUpdate(address to, uint256 tokenId, address auth) internal virtual {
+        // Block execution if the token is non-transferable and the token is not being minted (auth == address(0)) or going to an allowlisted address
+        if (!_isTransferable && auth != address(0)) revert TokenNonTransferable();
+    }
+
     // The following functions are overrides required by Solidity.
     function _update(
         address to,
@@ -141,10 +166,12 @@ contract Citizenship is
         address auth
     )
         internal
+        virtual
         override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721PausableUpgradeable, ERC721VotesUpgradeable)
         returns (address)
     {
-        if (!_isTransferable && auth != address(0)) revert TokenNonTransferable();
+        _beforeTokenUpdate(to, tokenId, auth); // allow for extending the update behavior
+
         return super._update(to, tokenId, auth);
     }
 

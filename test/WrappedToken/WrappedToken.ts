@@ -1,11 +1,12 @@
 import { expect } from "chai";
 import { deployWrappedTokenFixture } from "./WrappedToken.fixture";
-import { Citizenship } from "../../types";
+import { CitizenshipWithRegistry } from "../../types";
 import type { VoterRegistration } from "../../types/VoterRegistration";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { ethers } from "hardhat";
 
 describe.only("VoterRegistration", function () {
-  let citizenship: Citizenship, voterRegistration: VoterRegistration, admin: SignerWithAddress, otherUser: SignerWithAddress;
+  let citizenship: CitizenshipWithRegistry, voterRegistration: VoterRegistration, admin: SignerWithAddress, otherUser: SignerWithAddress;
 
   beforeEach(async function () {
     const fixture = await deployWrappedTokenFixture();
@@ -15,22 +16,66 @@ describe.only("VoterRegistration", function () {
     otherUser = fixture.signers[1];
   });
 
-  describe("Wrapping and Unwrapping", function () {
-    it.only("allows deposit and withdrawal of tokens", async function () {
+  describe("Allowlist", function () {
+    it("allows only admin to add allowlist address", async function () {
+      // Add allowlist address by admin
+      await expect(citizenship.connect(admin)
+        .updateAllowlist([await voterRegistration.getAddress()], [true]))
+        .to.emit(citizenship, "AllowlistUpdated").withArgs(await voterRegistration.getAddress(), true);
+
+      // check to see if the address was added
+      expect(await citizenship.allowlistedDestination(await voterRegistration.getAddress())).to.be.true;
+    });
+  })
+
+  describe.only("Wrapping and Unwrapping", function () {
+    it("allows deposit of tokens", async function () {
+
+      // allowlist voterRegistration
+      await expect(citizenship.connect(admin)
+        .updateAllowlist([await voterRegistration.getAddress()], [true]))
+        .to.emit(citizenship, "AllowlistUpdated").withArgs(await voterRegistration.getAddress(), true);
+
       // Admin mints a token to themselves in the underlying contract
-      await citizenship.connect(admin).safeMint(admin.address, "tokenURI");
+      await expect(citizenship.connect(admin).safeMint(admin.address, "tokenURI"))
+        .to.emit(citizenship, "Transfer").withArgs(ethers.ZeroAddress, admin.address, 0);
 
       // Admin approves VoterRegistration to take the token
       await citizenship.connect(admin).approve(await voterRegistration.getAddress(), 0);
 
       // Admin deposits the token in VoterRegistration, which wraps it
-      await voterRegistration.connect(admin).depositFor(admin.address, [1]);
+      await expect(voterRegistration.connect(admin).depositFor(admin.address, [0]))
+        .to.emit(citizenship, "Transfer").withArgs(admin.address, await voterRegistration.getAddress(), 0);
+
+      // Check ownership is transferred to VoterRegistration
+      expect(await citizenship.ownerOf(0)).to.equal(await voterRegistration.getAddress());
+
+    });
+
+    it("allows withdrawal of tokens", async function () {
+
+      // allowlist voterRegistration
+      await expect(citizenship.connect(admin)
+        .updateAllowlist([await voterRegistration.getAddress()], [true]))
+        .to.emit(citizenship, "AllowlistUpdated").withArgs(await voterRegistration.getAddress(), true);
+
+      // Admin mints a token to themselves in the underlying contract
+      await expect(citizenship.connect(admin).safeMint(admin.address, "tokenURI"))
+        .to.emit(citizenship, "Transfer").withArgs(ethers.ZeroAddress, admin.address, 0);
+
+      // Admin approves VoterRegistration to take the token
+      await citizenship.connect(admin).approve(await voterRegistration.getAddress(), 0);
+
+      // Admin deposits the token in VoterRegistration, which wraps it
+      await expect(voterRegistration.connect(admin).depositFor(admin.address, [0]))
+        .to.emit(citizenship, "Transfer").withArgs(admin.address, await voterRegistration.getAddress(), 0);
 
       // Admin withdraws the token, unwrapping it
-      await voterRegistration.connect(admin).withdrawTo(admin.address, [1]);
+      await expect(voterRegistration.connect(admin).withdrawTo(admin.address, [0]))
+        .to.emit(citizenship, "Transfer").withArgs(await voterRegistration.getAddress(), admin.address, 0);
 
       // Check ownership returns to admin in the underlying contract
-      expect(await citizenship.ownerOf(1)).to.equal(admin.address);
+      expect(await citizenship.ownerOf(0)).to.equal(admin.address);
     });
   });
 

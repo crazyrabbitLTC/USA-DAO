@@ -1,17 +1,16 @@
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import type { Signers } from "../types";
-import { deployCitizenshipFixture } from "./Citizenship.fixture";
-
-describe("Citizenship Token", function () {
+import { deployCitizenshipWithRegistryFixture } from "./CitizenshipWithRegistry.fixture";
+describe("Citizenship With Registry", function () {
 
   before(async function () {
     this.signers = {} as Signers;
     this.admin = {} as Signers;
     this.otherUser = {} as Signers;
+    this.thirdUser = {} as Signers;
 
     const signers = await ethers.getSigners();
     this.signers.admin = signers[0];
@@ -21,10 +20,11 @@ describe("Citizenship Token", function () {
 
   describe("Deployment", function () {
     beforeEach(async function () {
-      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipFixture);
+      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipWithRegistryFixture);
       this.citizenship = citizenshipProxy;
       this.admin = admin;
       this.otherUser = signers[1];
+      this.thirdUser = signers[2];
     });
 
     it("Should set the right name", async function () {
@@ -42,10 +42,11 @@ describe("Citizenship Token", function () {
 
   describe("Transferability", function () {
     beforeEach(async function () {
-      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipFixture);
+      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipWithRegistryFixture);
       this.citizenship = citizenshipProxy;
       this.admin = admin;
       this.otherUser = signers[1];
+      this.thirdUser = signers[2];
     });
 
 
@@ -118,6 +119,44 @@ describe("Citizenship Token", function () {
 
     });
 
+    it("Enforce transferability rules for allowListed tokens", async function () {
+      // Ensure token is nontransferable
+
+      // Disable transferability
+      await this.citizenship.connect(this.admin).toggleTransferability(false);
+
+      // Mint token
+      await expect(this.citizenship.connect(this.admin).safeMint(this.admin.address, "URI"))
+        .to.emit(this.citizenship, 'Transfer')
+        .withArgs("0x0000000000000000000000000000000000000000", this.admin.address, 0); // the first token
+
+      // Attempt to transfer token (assuming one exists and is owned by admin) to another user
+      const tokenId = 0;
+      await expect(this.citizenship.connect(this.admin).transferFrom(this.admin.address, this.otherUser.address, tokenId))
+        .to.be.revertedWithCustomError(this.citizenship, "TokenNonTransferable");
+
+
+      // Allowlist the users address
+      await this.citizenship.connect(this.admin).updateAllowlist([this.otherUser.address], [true]);
+
+      // Now transfer should succeed
+      await expect(this.citizenship.connect(this.admin).transferFrom(this.admin.address, this.otherUser.address, tokenId))
+        .to.emit(this.citizenship, 'Transfer');
+
+      // Check to be sure tokens can't be transfered to another address when not allowlisted
+
+      // Mint token
+      await expect(this.citizenship.connect(this.admin).safeMint(this.admin.address, "URI"))
+        .to.emit(this.citizenship, 'Transfer')
+        .withArgs("0x0000000000000000000000000000000000000000", this.admin.address, 1); // the first token
+
+      // Attempt to transfer token (assuming one exists and is owned by admin) to another user
+      await expect(this.citizenship.connect(this.admin).transferFrom(this.admin.address, this.thirdUser.address, 1))
+        .to.be.revertedWithCustomError(this.citizenship, "TokenNonTransferable");
+    });
+
+
+
     it("Unauthorized users cannot toggle transferability", async function () {
       // Attempt to toggle transferability by unauthorized user
       await expect(this.citizenship.connect(this.otherUser).toggleTransferability(true))
@@ -134,7 +173,7 @@ describe("Citizenship Token", function () {
 
   describe("Edge Cases", function () {
     beforeEach(async function () {
-      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipFixture);
+      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipWithRegistryFixture);
       this.citizenship = citizenshipProxy;
       this.admin = admin;
       this.otherUser = signers[1];
@@ -199,7 +238,7 @@ describe("Citizenship Token", function () {
 
   describe("Custom Token URI Management", function () {
     beforeEach(async function () {
-      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipFixture);
+      const { citizenshipProxy, admin, signers } = await this.loadFixture(deployCitizenshipWithRegistryFixture);
       this.citizenship = citizenshipProxy;
       this.admin = admin;
       this.otherUser = signers[1];
