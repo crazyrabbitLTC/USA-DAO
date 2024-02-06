@@ -17,11 +17,26 @@ contract MyToken is
     ERC1155BurnableUpgradeable,
     ERC1155SupplyUpgradeable
 {
-    bytes32 public constant URI_SETTER_ROLE = keccak256("URI_SETTER_ROLE");
+    bytes32 public constant URI_UPDATE_ROLE = keccak256("URI_UPDATE_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant ENABLE_TRANSFER_ROLE = keccak256("ENABLE_TRANSFER_ROLE");
+    bytes32 public constant ALLOWLIST_MANAGER_ROLE = keccak256("ALLOWLIST_MANAGER_ROLE");
 
     error TokenNonTransferable();
+    error CallerDoesNotHavePermission();
+    error AddressesAndStatusesLengthMismatch();
+
+    event TransferabilityToggled(bool transferable);
+    event AllowlistUpdated(address indexed destination, bool allowlisted);
+
+    bool private _isTransferable;
+
+    // Allowlisted destinations
+    mapping(address => bool) public allowlistedDestination;
+
+    // custom URIs
+    mapping(uint256 => string) private _customTokenURIs;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -40,7 +55,7 @@ contract MyToken is
         _grantRole(MINTER_ROLE, minter);
     }
 
-    function setURI(string memory newuri) public onlyRole(URI_SETTER_ROLE) {
+    function setURI(string memory newuri) public onlyRole(URI_UPDATE_ROLE) {
         _setURI(newuri);
     }
 
@@ -65,15 +80,36 @@ contract MyToken is
         _mintBatch(to, ids, amounts, data);
     }
 
-    function _beforeUpdate(
-        address operator,
-        address from,
-        uint256[] memory ids,
-        uint256[] memory values
-    ) internal pure {
-        if (from != address(0)) {
+    function toggleTransferability(bool transferable) public {
+        if (!hasRole(ENABLE_TRANSFER_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
+        _isTransferable = transferable;
+        emit TransferabilityToggled(transferable);
+    }
+
+    // Batch updates the allowlist status of addresses
+    function updateAllowlist(address[] calldata addresses, bool[] calldata statuses) public {
+        if (!hasRole(ALLOWLIST_MANAGER_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
+        if (addresses.length != statuses.length) revert AddressesAndStatusesLengthMismatch();
+
+        for (uint i = 0; i < addresses.length; i++) {
+            allowlistedDestination[addresses[i]] = statuses[i];
+            emit AllowlistUpdated(addresses[i], statuses[i]);
+        }
+    }
+
+    function _beforeUpdate(address from, address to, uint256[] memory ids, uint256[] memory values) internal view {
+        // if it's being minted, it's allowed
+        if (from == address(0)) {
+            return;
+        }
+
+        // If it's not being minted, it's only allowed if it's transferable or the destination is allowlisted
+        if (!_isTransferable && !allowlistedDestination[to]) {
             revert TokenNonTransferable();
         }
+
+        // if it's some weird other state, revert
+        revert TokenNonTransferable();
     }
 
     // The following functions are overrides required by Solidity.

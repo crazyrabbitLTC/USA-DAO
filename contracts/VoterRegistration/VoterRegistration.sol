@@ -145,7 +145,6 @@ contract VoterRegistration is
         }
 
         // if it's being burned, it's allowed
-
         if (to == address(0)) {
             return super._update(to, tokenId, auth);
         }
