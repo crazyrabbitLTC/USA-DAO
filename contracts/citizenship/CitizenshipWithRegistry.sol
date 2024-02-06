@@ -3,8 +3,6 @@ pragma solidity ^0.8.20;
 
 import "./Citizenship.sol";
 
-import "hardhat/console.sol";
-
 contract CitizenshipWithRegistry is Citizenship {
     mapping(address => bool) public allowlistedDestination;
 
@@ -13,7 +11,6 @@ contract CitizenshipWithRegistry is Citizenship {
     event AllowlistUpdated(address indexed destination, bool allowlisted);
 
     error AddressesAndStatusesLengthMismatch();
-
 
     // Initializes the contract, sets up initial allowlisted destinations, and configures roles
     function initialize(
@@ -48,10 +45,14 @@ contract CitizenshipWithRegistry is Citizenship {
         return allowlistedDestination[to];
     }
 
-    function _beforeTokenUpdate(address to, uint256 tokenId, address auth) view internal override(Citizenship) {
-        // Check if the token is non-transferable. In such case, it should either be minting (auth == address(0))
-        // or going to an allowlisted address. If not, revert.
-        if (!Citizenship._isTransferable && !allowlistedDestination[to] && auth != address(0)) {
+    function _beforeTokenUpdate(address to, uint256 tokenId, address auth) internal view override(Citizenship) {
+        // If it's being minted, it's allowed
+        if (auth == address(0)) {
+            return;
+        }
+
+        // If it's not being minted, it's only allowed if it's transferable or the destination is allowlisted
+        if (!_isTransferable && !allowlistedDestination[to]) {
             revert TokenNonTransferable();
         }
     }

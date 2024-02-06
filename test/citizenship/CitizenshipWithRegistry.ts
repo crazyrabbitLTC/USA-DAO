@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 
 import type { Signers } from "../types";
 import { deployCitizenshipWithRegistryFixture } from "./CitizenshipWithRegistry.fixture";
-describe.only("Citizenship With Registry", function () {
+describe("Citizenship With Registry", function () {
 
   before(async function () {
     this.signers = {} as Signers;

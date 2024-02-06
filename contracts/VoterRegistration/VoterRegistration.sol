@@ -52,12 +52,10 @@ contract VoterRegistration is
     error TokenNonTransferable();
     error TokenNonBurnable();
     error CallerDoesNotHavePauserRole();
-    error CallerDoesNotHaveTransferEnableRole();
     error CallerDoesNotHavePermission();
     error BurningTokensIsDisabled();
     error InvalidTokenId();
     error AddressesAndStatusesLengthMismatch();
-
 
     constructor() {
         _disableInitializers();
@@ -96,7 +94,7 @@ contract VoterRegistration is
     }
 
     function toggleTransferability(bool transferable) public {
-        if (!hasRole(ENABLE_TRANSFER_ROLE, _msgSender())) revert CallerDoesNotHaveTransferEnableRole();
+        if (!hasRole(ENABLE_TRANSFER_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
         _isTransferable = transferable;
         emit TransferabilityToggled(transferable);
     }
@@ -141,7 +139,19 @@ contract VoterRegistration is
         override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721PausableUpgradeable, ERC721VotesUpgradeable)
         returns (address)
     {
-      if (!_isTransferable && !allowlistedDestination[to] && auth != address(0)) {
+        // If it's being minted, it's allowed
+        if (auth == address(0)) {
+            return super._update(to, tokenId, auth);
+        }
+
+        // if it's being burned, it's allowed
+
+        if (to == address(0)) {
+            return super._update(to, tokenId, auth);
+        }
+
+        // If it's not being minted, it's only allowed if it's transferable or the destination is allowlisted
+        if (!_isTransferable && !allowlistedDestination[to]) {
             revert TokenNonTransferable();
         }
         return super._update(to, tokenId, auth);
