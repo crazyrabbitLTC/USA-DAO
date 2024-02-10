@@ -33,6 +33,8 @@ contract StateDepartment is Initializable, AccessControlUpgradeable, ReentrancyG
 
     bool public isPaused;
 
+    bytes32 public constant VERIFIER_UPDATE_ROLE = keccak256("VERIFIER_UPDATE_ROLE");
+
     error NotEligibleForCitizenship();
     error AlreadyClaimedCitizenship();
     error CallerNotAdmin();
@@ -40,6 +42,7 @@ contract StateDepartment is Initializable, AccessControlUpgradeable, ReentrancyG
 
     event CitizenshipClaimed(address indexed user);
     event Paused(bool isPaused);
+    event VerifierUpdated(address indexed newVerifier);
 
     mapping(address => bool) public citizenshipClaimed;
 
@@ -51,10 +54,12 @@ contract StateDepartment is Initializable, AccessControlUpgradeable, ReentrancyG
     ) public initializer {
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
+        _grantRole(VERIFIER_UPDATE_ROLE, _defaultAdmin);
 
         citizenshipToken = ICitizenshipToken(_citizenshipTokenAddress);
         verifier = IVerifier(_verifierAddress);
         defaultURI = _defaultURI;
+        emit VerifierUpdated(_verifierAddress);
     }
 
     function togglePause() public {
@@ -77,5 +82,11 @@ contract StateDepartment is Initializable, AccessControlUpgradeable, ReentrancyG
     function canClaimCitizenship(address _user) public view returns (bool) {
         string memory tokenSymbol = citizenshipToken.symbol();
         return verifier.isCountry(_user, tokenSymbol);
+    }
+
+    function updateVerifier(address _verifierAddress) public {
+        if (!hasRole(VERIFIER_UPDATE_ROLE, msg.sender)) revert CallerNotAdmin();
+        verifier = IVerifier(_verifierAddress);
+        emit VerifierUpdated(_verifierAddress);
     }
 }

@@ -5,6 +5,7 @@ import "./Citizenship.sol";
 
 contract CitizenshipWithRegistry is Citizenship {
     mapping(address => bool) public allowlistedDestination;
+    address[] public currentAllowListedDestinations;
 
     bytes32 public constant ALLOWLIST_MANAGER_ROLE = keccak256("ALLOWLIST_MANAGER_ROLE");
 
@@ -29,15 +30,39 @@ contract CitizenshipWithRegistry is Citizenship {
         _grantRole(ALLOWLIST_MANAGER_ROLE, initialAuthority);
     }
 
-    // Batch updates the allowlist status of addresses
+// todo: add test for this function
+    function addAllowListItem(address item) public {
+        if (!hasRole(ALLOWLIST_MANAGER_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
+        allowlistedDestination[item] = true;
+        currentAllowListedDestinations.push(item); // todo: this could make the array messy
+        emit AllowlistUpdated(item, true);
+    }
+
     function updateAllowlist(address[] calldata addresses, bool[] calldata statuses) public {
         if (!hasRole(ALLOWLIST_MANAGER_ROLE, _msgSender())) revert CallerDoesNotHavePermission();
         if (addresses.length != statuses.length) revert AddressesAndStatusesLengthMismatch();
 
+        // Step 1: Initialize a fixed-size memory array
+        address[] memory tempAddresses = new address[](addresses.length);
+        uint count = 0;
+
         for (uint i = 0; i < addresses.length; i++) {
             allowlistedDestination[addresses[i]] = statuses[i];
+            // Step 2: Use the counter to track and add true status addresses
+            if (statuses[i]) {
+                tempAddresses[count] = addresses[i];
+                count++;
+            }
             emit AllowlistUpdated(addresses[i], statuses[i]);
         }
+
+        // Step 3: Copy to a new memory array of correct size before assignment
+        address[] memory finalAddresses = new address[](count);
+        for (uint i = 0; i < count; i++) {
+            finalAddresses[i] = tempAddresses[i];
+        }
+
+        currentAllowListedDestinations = finalAddresses;
     }
 
     // Checks if a destination is allowlisted

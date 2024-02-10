@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @custom:security-contact dennison@dennisonbertram.com
-contract MyToken is
+contract Awards is
     Initializable,
     ERC1155Upgradeable,
     AccessControlUpgradeable,

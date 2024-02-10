@@ -46,6 +46,27 @@ describe("StateDepartment Contract", function () {
 
   });
 
+  describe("Verifier Contract Management", function () {
+    it("Should allow VERIFIER_UPDATE_ROLE to update address", async function () {
+      const VERIFIER_UPDATE_ROLE = await this.stateDepartment.VERIFIER_UPDATE_ROLE();
+
+      await expect(this.stateDepartment.updateVerifier(this.admin.address))
+      .to.emit(this.stateDepartment, "VerifierUpdated").withArgs(this.admin.address);
+
+      expect(await this.stateDepartment.verifier()).to.equal(this.admin.address);
+
+    });
+
+    it("Should not allow user without VERIFIER_UPDATE_ROLE to update address", async function () {
+      const VERIFIER_UPDATE_ROLE = await this.stateDepartment.VERIFIER_UPDATE_ROLE();
+
+      await expect(this.stateDepartment.connect(this.otherUser).updateVerifier(this.admin.address))
+      .to.revertedWithCustomError(this.stateDepartment, "CallerNotAdmin");
+
+    });
+
+  });
+
   describe("Claiming Citizenship", function () {
     it("Should allow eligible users to claim citizenship", async function () {
       // Mock the verifier to return true for eligibility
