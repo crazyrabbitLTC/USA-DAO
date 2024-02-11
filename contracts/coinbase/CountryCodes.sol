@@ -3,9 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-
-import "hardhat/console.sol";
-
 contract CountryCodes is AccessControl {
     bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
