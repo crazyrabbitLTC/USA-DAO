@@ -6,7 +6,7 @@ import type { VoterRegistration } from "../../types/VoterRegistration";
 
 import { deployCitizenshipWithRegistryFixture } from "../citizenship/CitizenshipWithRegistry.fixture";
 
-export async function deployWrappedTokenFixture() {
+export async function deployVoterRegistrationFixture() {
   const signers = await ethers.getSigners();
   const admin = signers[0];
 

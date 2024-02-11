@@ -7,11 +7,15 @@ import "../awards/Awards.sol";
 import "../commemorativeEdition/CommemorativeEdition.sol";
 import "../stateDepartment/StateDepartment.sol";
 import "../VoterRegistration/VoterRegistration.sol";
+import "../coinbase/CountryCodes.sol";
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
 
 contract ThePeople is AccessControl {
+
+    CountryCodes public countryCodes;
+
     struct Implementation {
         CitizenshipWithRegistry citizenship;
         StateDepartment stateDepartment;
@@ -47,9 +51,11 @@ contract ThePeople is AccessControl {
 
     error ContractNotPermissionless();
     error NationAlreadyExists(string symbol);
+    error CountryIsNotCurrentlyInList(string symbol);
 
     constructor(
         address defaultAdmin,
+        address _countryCodes,
         address _citizenship,
         address _stateDepartment,
         address _voterRegistration,
@@ -65,6 +71,8 @@ contract ThePeople is AccessControl {
         isPermissionless = false;
 
         _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
+        countryCodes = CountryCodes(_countryCodes);
+
         emit ImplementationUpdated(_citizenship, _stateDepartment, _voterRegistration, _commemorativeEdition, _awards);
         emit IsCreationPermissionless(isPermissionless);
     }
@@ -90,22 +98,25 @@ contract ThePeople is AccessControl {
     }
 
     function createNation(
-        string calldata _nation,
-        string calldata _symbol,
+        string memory _symbol,
         address founder,
         address initialVerifier,
         string calldata defaultCitizenshipURI
     ) public {
         if (!isPermissionless) revert ContractNotPermissionless();
 
-        // require caller is verified for that nation
+        // check if the country exists
+        if(!countryCodes.countryExists(_symbol)) revert CountryIsNotCurrentlyInList(_symbol);
 
+        string memory _nation = countryCodes.getCountryName(_symbol);
+
+        // require caller is verified for that nation
         _createNation(_nation, _symbol, founder, initialVerifier, defaultCitizenshipURI);
     }
 
     function _createNation(
-        string calldata _nation,
-        string calldata _symbol,
+        string memory _nation,
+        string memory _symbol,
         address founder,
         address initialVerifier,
         string calldata defaultCitizenshipURI
@@ -139,7 +150,7 @@ contract ThePeople is AccessControl {
         emit NationCreated(_nation, _symbol, citizenship);
     }
 
-    function _doesNationExist(string calldata _symbol) internal view returns (bool) {
+    function _doesNationExist(string memory _symbol) internal view returns (bool) {
         return bytes(nations[_symbol].nation).length > 0;
     }
 

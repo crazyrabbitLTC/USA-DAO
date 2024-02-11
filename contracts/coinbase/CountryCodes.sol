@@ -45,4 +45,8 @@ contract CountryCodes is AccessControl {
     function _validateCountryCode(string memory countryCode) internal pure returns (bool) {
         return bytes(countryCode).length == 2;
     }
+
+    function countryExists(string memory countryCode) public view returns (bool) {
+        return bytes(countryCodes[countryCode]).length > 0;
+    }
 }

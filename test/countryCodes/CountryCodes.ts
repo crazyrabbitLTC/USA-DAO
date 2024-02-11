@@ -1,5 +1,4 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
 import { deployCountryCodesFixture } from "./CountryCodes.fixture"
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import type { CountryCodes } from "../../types";
@@ -9,7 +8,7 @@ type Country = {
   abbreviation: string;
 };
 
-describe.only("CountryCodes Contract", function () {
+describe("CountryCodes Contract", function () {
   let admin: SignerWithAddress, otherUser: SignerWithAddress, countryCodes: CountryCodes;
 
   let fullCountryList: Country[];

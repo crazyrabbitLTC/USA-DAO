@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { deployWrappedTokenFixture } from "./VoterRegistration.fixture";
+import { deployVoterRegistrationFixture } from "./VoterRegistration.fixture";
 import { CitizenshipWithRegistry } from "../../types";
 import type { VoterRegistration } from "../../types/VoterRegistration";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
@@ -9,7 +9,7 @@ describe("VoterRegistration", function () {
   let citizenship: CitizenshipWithRegistry, voterRegistration: VoterRegistration, admin: SignerWithAddress, otherUser: SignerWithAddress;
 
   beforeEach(async function () {
-    const fixture = await deployWrappedTokenFixture();
+    const fixture = await deployVoterRegistrationFixture();
     citizenship = fixture.citizenshipProxy;
     voterRegistration = fixture.voterRegistrationProxy;
     admin = fixture.admin;
