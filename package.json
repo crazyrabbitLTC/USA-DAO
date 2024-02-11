@@ -79,6 +79,9 @@
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@openzeppelin/contracts": "^5.0.1",
-    "@openzeppelin/contracts-upgradeable": "^5.0.1"
+    "@openzeppelin/contracts-upgradeable": "^5.0.1",
+    "@types/latinize": "^0.2.18",
+    "csv-parse": "^5.5.3",
+    "latinize": "^2.0.0"
   }
 }
