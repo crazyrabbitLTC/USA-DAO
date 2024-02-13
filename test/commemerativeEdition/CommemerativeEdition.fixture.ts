@@ -1,5 +1,4 @@
 import { ethers } from "hardhat";
-import { deployCitizenshipFixture } from "../citizenship/Citizenship.fixture"; // Assuming this is the correct import path
 import { deployStateDepartmentFixture } from "../stateDepartment/StateDepartment.fixture"; // Assuming this is the correct import path
 import type { CommemorativeEdition } from "../../types/CommemorativeEdition"; // Update the import path as necessary
 import type { CommemorativeEdition__factory } from "../../types/factories/CommemorativeEdition__factory";
@@ -33,7 +32,7 @@ export async function deployCommemorativeEditionFixture() {
 
   // give permission to update UI to commemoritve Edition Proxy
   await citizenshipProxy.grantRole(updateURIRole, await commemorativeEditionProxy.getAddress());
-  
+
   return {
     citizenshipProxy,
     stateDepartmentProxy,

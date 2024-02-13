@@ -13,7 +13,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
 
 contract ThePeople is AccessControl {
-
     CountryCodes public countryCodes;
 
     struct Implementation {
@@ -28,6 +27,9 @@ contract ThePeople is AccessControl {
         string nation;
         string symbol;
         address citizenship;
+        address stateDepartment;
+        address federalVoterRegistration;
+        address founder;
     }
 
     bool public isPermissionless;
@@ -47,7 +49,12 @@ contract ThePeople is AccessControl {
     );
 
     event IsCreationPermissionless(bool isPermissionless);
-    event NationCreated(string nation, string symbol, address citizenship);
+    event NationCreated(address indexed citizenship, string nation, string symbol, address founder);
+    event NationDetails(
+        address indexed citizenship,
+        address indexed StateDepartment,
+        address indexed federalVoterRegistration
+    );
 
     error ContractNotPermissionless();
     error NationAlreadyExists(string symbol);
@@ -105,12 +112,14 @@ contract ThePeople is AccessControl {
     ) public {
         if (!isPermissionless) revert ContractNotPermissionless();
 
+        // todo: require caller is verified for that nation
+        // coinbase(msg.sner).isRegisered(country)
+
         // check if the country exists
-        if(!countryCodes.countryExists(_symbol)) revert CountryIsNotCurrentlyInList(_symbol);
+        if (!countryCodes.countryExists(_symbol)) revert CountryIsNotCurrentlyInList(_symbol);
 
         string memory _nation = countryCodes.getCountryName(_symbol);
 
-        // require caller is verified for that nation
         _createNation(_nation, _symbol, founder, initialVerifier, defaultCitizenshipURI);
     }
 
@@ -124,30 +133,36 @@ contract ThePeople is AccessControl {
         // We can not create duplicate nations
         if (_doesNationExist(_symbol)) revert NationAlreadyExists(_symbol);
 
-        address citizenship = clone(address(implementation.citizenship));
+        CitizenshipWithRegistry citizenship = CitizenshipWithRegistry(clone(address(implementation.citizenship)));
         address stateDepartment = clone(address(implementation.stateDepartment));
 
         address federalVoterRegistration = clone(address(implementation.voterRegistration));
 
         // Initialize Citizenship
-        CitizenshipWithRegistry(citizenship).initialize(address(this), _nation, _symbol, new address[](0));
+        citizenship.initialize(address(this), _nation, _symbol, new address[](0));
 
         // Add Founder to Citizenship
-        CitizenshipWithRegistry(citizenship).grantRole(DEFAULT_ADMIN_ROLE, founder);
+        citizenship.grantRole(DEFAULT_ADMIN_ROLE, founder);
 
         // Allow citizenship to be transfered to Federal
-        CitizenshipWithRegistry(citizenship).addAllowListItem(federalVoterRegistration);
+        citizenship.addAllowListItem(federalVoterRegistration);
 
         // Initialize StateDepartment
-        StateDepartment(stateDepartment).initialize(citizenship, initialVerifier, defaultCitizenshipURI, address(this));
+        StateDepartment(stateDepartment).initialize(
+            address(citizenship),
+            initialVerifier,
+            defaultCitizenshipURI,
+            address(this)
+        );
 
         // Add Founder to StateDepartment
         StateDepartment(stateDepartment).grantRole(DEFAULT_ADMIN_ROLE, founder);
 
         // Store Nation
-        nations[_symbol] = Nation(_nation, _symbol, citizenship);
+        nations[_symbol] = Nation(_nation, _symbol, address(citizenship), stateDepartment, federalVoterRegistration, founder);
 
-        emit NationCreated(_nation, _symbol, citizenship);
+        emit NationCreated(address(citizenship), _nation, _symbol, founder);
+        emit NationDetails(address(citizenship), stateDepartment, federalVoterRegistration);
     }
 
     function _doesNationExist(string memory _symbol) internal view returns (bool) {
