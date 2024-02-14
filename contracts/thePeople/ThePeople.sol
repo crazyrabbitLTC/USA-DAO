@@ -155,6 +155,19 @@ contract ThePeople is AccessControl {
             address(this)
         );
 
+        string memory FederalVoterName = "Federal Voter Registration for ";
+
+        // Initialize FederalVoterRegistration
+        VoterRegistration(federalVoterRegistration).initialize(
+            address(this),
+            string.concat(FederalVoterName, _nation),
+            string.concat("w", _symbol),
+            citizenship
+        );
+
+        // Add Founder to FederalVoterRegistration
+        VoterRegistration(federalVoterRegistration).grantRole(DEFAULT_ADMIN_ROLE, founder);
+
         // Add Founder to StateDepartment
         StateDepartment(stateDepartment).grantRole(DEFAULT_ADMIN_ROLE, founder);
 
@@ -162,7 +175,14 @@ contract ThePeople is AccessControl {
         citizenship.grantRole((citizenship.MINTER_ROLE()), stateDepartment);
 
         // Store Nation
-        nations[_symbol] = Nation(_nation, _symbol, address(citizenship), stateDepartment, federalVoterRegistration, founder);
+        nations[_symbol] = Nation(
+            _nation,
+            _symbol,
+            address(citizenship),
+            stateDepartment,
+            federalVoterRegistration,
+            founder
+        );
 
         emit NationCreated(address(citizenship), _nation, _symbol, founder);
         emit NationDetails(address(citizenship), stateDepartment, federalVoterRegistration);
