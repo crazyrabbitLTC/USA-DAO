@@ -28,7 +28,6 @@ describe.only("ThePeople Contract", function () {
     await expect(thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI)).to.emit(thePeople, "NationCreated").to.emit(thePeople, "NationDetails");
 
     const nation = await thePeople.nations(countryCode);
-    console.log("🚀 ~ nation:", nation)
 
     expect(nation.symbol).to.equal(countryCode);
     expect(nation.nation).to.equal(nationName);
@@ -36,20 +35,94 @@ describe.only("ThePeople Contract", function () {
 
   });
 
-  it("should revert creating a nation if the contract is not permissionless", async function () {
-    // Attempt to create a nation without the contract being permissionless and expect revert
-    // ... (Implement the test logic)
-  });
+// Test for reverting creation of a nation if the contract is not permissionless
+it("should revert creating a nation if the contract is not permissionless", async function () {
+  await expect(thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI))
+    .to.be.revertedWithCustomError(thePeople, "ContractNotPermissionless");
+});
 
-  it("should update implementations correctly", async function () {
-    // Update the implementations and verify the new addresses are set correctly
-    // ... (Implement the test logic)
-  });
+// Test for updating implementations correctly
+it("should update implementations correctly", async function () {
+  // New implementation addresses (example addresses, replace with actual deployed addresses)
+  const newCitizenshipAddress = "0x0000000000000000000000000000000000000001";
+  const newStateDepartmentAddress = "0x0000000000000000000000000000000000000002";
+  const newVoterRegistrationAddress = "0x0000000000000000000000000000000000000003";
+  const newCommemorativeEditionAddress = "0x0000000000000000000000000000000000000004";
+  const newAwardsAddress = "0x0000000000000000000000000000000000000005";
 
-  it("should allow only the admin to update implementations", async function () {
-    // Try updating implementations from a non-admin account and expect revert
-    // ... (Implement the test logic)
-  });
+  await expect(thePeople.updateImplementation(newCitizenshipAddress, newStateDepartmentAddress, newVoterRegistrationAddress, newCommemorativeEditionAddress, newAwardsAddress))
+    .to.emit(thePeople, "ImplementationUpdated")
+    .withArgs(newCitizenshipAddress, newStateDepartmentAddress, newVoterRegistrationAddress, newCommemorativeEditionAddress, newAwardsAddress);
+
+  // Verify new implementations are set correctly (example verification for one, apply similar for others)
+  const implementations = await thePeople.implementation();
+  expect(implementations[0]).to.equal(newCitizenshipAddress);
+  expect(implementations[1]).to.equal(newStateDepartmentAddress);
+  expect(implementations[2]).to.equal(newVoterRegistrationAddress);
+  expect(implementations[3]).to.equal(newCommemorativeEditionAddress);
+  expect(implementations[4]).to.equal(newAwardsAddress);
+
+});
+
+// Test to allow only the admin to update implementations
+it("should allow only the admin to update implementations", async function () {
+  // Assuming `otherAccount` is a SignerWithAddress not having the DEFAULT_ADMIN_ROLE
+  const otherAccount = ethers.Wallet.createRandom().connect(ethers.provider);
+
+  const newCitizenshipAddress = "0x0000000000000000000000000000000000000001";
+  const newStateDepartmentAddress = "0x0000000000000000000000000000000000000002";
+  const newVoterRegistrationAddress = "0x0000000000000000000000000000000000000003";
+  const newCommemorativeEditionAddress = "0x0000000000000000000000000000000000000004";
+  const newAwardsAddress = "0x0000000000000000000000000000000000000005";
+
+  await expect(thePeople.connect(otherAccount).updateImplementation(newCitizenshipAddress, newStateDepartmentAddress, newVoterRegistrationAddress, newCommemorativeEditionAddress, newAwardsAddress))
+    .to.be.reverted
+});
+
+// Test for Nation Creation with Duplicate Symbol
+it("should revert creating a nation with a duplicate symbol", async function () {
+  // First, make the contract permissionless
+  await thePeople.makePermissionless();
+  // Create the first nation
+  await expect(thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI))
+    .to.emit(thePeople, "NationCreated");
+
+  // Attempt to create another nation with the same symbol
+  await expect(thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI))
+    .to.be.revertedWithCustomError(thePeople, "NationAlreadyExists");
+});
+
+it("should not affect existing nations after updating implementations", async function () {
+  await thePeople.makePermissionless();
+  await thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI);
+
+  // Save old nation details
+  const oldNationDetails = await thePeople.nations(countryCode);
+
+  // Update implementations to new addresses
+  const newCitizenshipAddress = "0x0000000000000000000000000000000000000001";
+  const newStateDepartmentAddress = "0x0000000000000000000000000000000000000002";
+  const newVoterRegistrationAddress = "0x0000000000000000000000000000000000000003";
+  const newCommemorativeEditionAddress = "0x0000000000000000000000000000000000000004";
+  const newAwardsAddress = "0x0000000000000000000000000000000000000005";
+  await thePeople.updateImplementation(newCitizenshipAddress, newStateDepartmentAddress, newVoterRegistrationAddress, newCommemorativeEditionAddress, newAwardsAddress)
+
+  // Assert that the old nation still exists with its original details
+  const unchangedNationDetails = await thePeople.nations(countryCode);
+  expect(unchangedNationDetails.citizenship).to.equal(oldNationDetails.citizenship);
+  // Add additional checks as necessary
+});
+
+it("should create a nation within reasonable gas limits", async function () {
+  await thePeople.makePermissionless();
+  const tx = await thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI);
+  const receipt = await tx.wait();
+
+  // Specify your contract's expected gas usage threshold
+  const gasUsageThreshold = 6000000; // Example threshold, adjust based on your expectations
+  expect(receipt?.gasUsed).to.be.lessThan(gasUsageThreshold);
+});
+
 
   // Additional tests can be added here...
 });
