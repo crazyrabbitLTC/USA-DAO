@@ -158,6 +158,9 @@ contract ThePeople is AccessControl {
         // Add Founder to StateDepartment
         StateDepartment(stateDepartment).grantRole(DEFAULT_ADMIN_ROLE, founder);
 
+        // Give StateDepartment MinterRole
+        citizenship.grantRole((citizenship.MINTER_ROLE()), stateDepartment);
+
         // Store Nation
         nations[_symbol] = Nation(_nation, _symbol, address(citizenship), stateDepartment, federalVoterRegistration, founder);
 

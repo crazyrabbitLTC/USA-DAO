@@ -5,12 +5,12 @@ import { deployThePeopleFixture } from "./ThePeople.fixture";
 import { CountryCodes, ThePeople } from "../../types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe.only("ThePeople Contract", function () {
+describe("ThePeople Contract", function () {
   let admin: SignerWithAddress, thePeople: ThePeople, countryCodes: CountryCodes;
   const countryCode = "US";
   const nationName = "United States";
 
-  const exampleUserAddress = "0x92C67A9762c1Fe5884fac38708e6840245298895"
+  // const exampleUserAddress = "0x92C67A9762c1Fe5884fac38708e6840245298895"
   const verifierAddress = "0x64081692D9269eBF6a853e9A80B39989947243b5"; //https://basescan.org/address/0x64081692D9269eBF6a853e9A80B39989947243b5#readContract
   const defaultURI = "https://example.com/default-citizenship";
 

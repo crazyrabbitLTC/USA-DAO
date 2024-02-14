@@ -60,6 +60,7 @@ const commemorativeEditionImpl = await commemorativeEditionFactory.deploy() as C
     admin.address // todo: replace with actual award token address
   );
 
+  // voter registration is a proxy because anyone theoretically can deploy it, it's a destination for the token. 
   return {
     thePeople,
     admin,
