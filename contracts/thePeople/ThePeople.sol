@@ -99,10 +99,12 @@ contract ThePeople is AccessControl {
         emit ImplementationUpdated(_citizenship, _stateDepartment, _voterRegistration, _commemorativeEdition, _awards);
     }
 
-    function makePermissionless() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        isPermissionless = true;
+    function togglePermissionless() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        isPermissionless = !isPermissionless;
         emit IsCreationPermissionless(isPermissionless);
     }
+
+
 
     function createNation(
         string memory _symbol,
@@ -110,7 +112,7 @@ contract ThePeople is AccessControl {
         address initialVerifier,
         string calldata defaultCitizenshipURI
     ) public {
-        if (!isPermissionless) revert ContractNotPermissionless();
+        if (!isPermissionless && !hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) revert ContractNotPermissionless();
 
         // todo: require caller is verified for that nation
         // coinbase(msg.sner).isRegisered(country)

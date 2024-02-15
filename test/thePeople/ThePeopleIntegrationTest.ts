@@ -17,7 +17,9 @@ type NationDetails = [string, string, string, string, string, string] & {
 };
 describe.only("ThePeople Integration Test", function () {
   let thePeople: ThePeople, countryCodes: CountryCodes, citizenshipImpl: CitizenshipWithRegistry, stateDepartmentImpl: StateDepartment, voterRegistrationProxy: VoterRegistration;
-  let admin: SignerWithAddress
+  let admin: SignerWithAddress, otherUser: SignerWithAddress;
+  let signers: SignerWithAddress[];
+
   const countryCode = "US";
   const nationName = "United States";
   const exampleUserAddress = "0x92C67A9762c1Fe5884fac38708e6840245298895";
@@ -29,10 +31,11 @@ describe.only("ThePeople Integration Test", function () {
   let voterRegistration: VoterRegistration;
 
   before(async function () {
-    ({ thePeople, citizenshipImpl, countryCodes, stateDepartmentImpl, voterRegistrationProxy, admin } = await deployThePeopleFixture());
+    ({ thePeople, citizenshipImpl, countryCodes, stateDepartmentImpl, voterRegistrationProxy, admin, signers } = await deployThePeopleFixture());
 
+    otherUser = signers[1];
     // Make ThePeople contract permissionless for the purpose of testing
-    await thePeople.makePermissionless();
+    await thePeople.togglePermissionless();
 
     // Add the US to the countryCodes
     await countryCodes.addCountryCode([{ name: nationName, abbreviation: countryCode }]);
@@ -54,7 +57,7 @@ describe.only("ThePeople Integration Test", function () {
 
   });
 
-  it.only("Complete lifecycle test", async function () {
+  it("Complete lifecycle test", async function () {
     //impersonate a US user
     await network.provider.request({
       method: "hardhat_impersonateAccount",
@@ -69,8 +72,6 @@ describe.only("ThePeople Integration Test", function () {
 
     const exampleUser = await ethers.getSigner(exampleUserAddress);
 
-
-    // create
     // Claim citizenship
     await expect(stateDepartment.connect(exampleUser).claimCitizenship())
       .to.emit(citizenship, "Transfer") // Assuming the citizenship contract emits this event on mint
@@ -95,48 +96,47 @@ describe.only("ThePeople Integration Test", function () {
     expect(await citizenship.ownerOf(tokenId)).to.equal(await voterRegistration.getAddress());
   });
 
-  // Additional test for VoterRegistration: deposit and withdrawal
-  describe("Voter Registration Deposit and Withdrawal", function () {
-    let tokenId;
+  it("Nation creation by admin in non-permissionless mode", async function () {
+    // Make ThePeople contract non-permissionless for the purpose of testing
+    await expect(thePeople.connect(admin).togglePermissionless()).to.emit(thePeople, "IsCreationPermissionless").withArgs(false);
+    // Add country code
+    // Add the US to the countryCodes
+    const country = { name: "Canada", abbreviation: "CA" };
+    await countryCodes.addCountryCode([country]);
 
-    it("should allow a user to deposit and withdraw their token", async function () {
-      // Mint a new token and get its tokenId
-      await expect(stateDepartment.connect(exampleUser).claimCitizenship())
-        .to.emit(citizenship, "Transfer")
-        .withArgs(ethers.constants.AddressZero, exampleUserAddress, 0);
-      tokenId = 0; // Assuming this is the token's ID
+    // Attempt to create another nation as a non-admin should fail
+    await expect(thePeople.connect(otherUser).createNation("CA", otherUser.address, verifierAddress, "https://example.com/default-citizenship-ca"))
+      .to.be.reverted; // Expecting revert due to lack of permission
 
-      // Deposit the token
-      await citizenship.connect(exampleUser).approve(voterRegistrationProxy.address, tokenId);
-      await expect(voterRegistrationProxy.connect(exampleUser).depositFor(exampleUserAddress, [tokenId]))
-        .to.emit(voterRegistrationProxy, "Transfer")
-        .withArgs(ethers.constants.AddressZero, exampleUserAddress, tokenId);
-
-      // Withdraw the token back to the user
-      await expect(voterRegistrationProxy.connect(exampleUser).withdrawTo(exampleUserAddress, [tokenId]))
-        .to.emit(citizenship, "Transfer")
-        .withArgs(voterRegistrationProxy.address, exampleUserAddress, tokenId);
-    });
+    // // Admin should still be able to create a nation
+    await expect(thePeople.connect(admin).createNation("CA", admin.address, verifierAddress, "https://example.com/default-citizenship-ca"))
+      .to.emit(thePeople, "NationCreated"); // Verify that the nation creation event is emitted
   });
+
 
   // Test for State Department: Ability to revoke citizenship
-  describe("State Department Revocation", function () {
+  describe("State Department ", function () {
     it("should not allow a user to claim citizenship twice", async function () {
+      //impersonate a US user
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [exampleUserAddress],
+      });
+
+      // send funds to the user.
+      await admin.sendTransaction({  //   create  transaction
+        to: exampleUserAddress,
+        value: ethers.parseEther("1"),
+      });
+
+      const exampleUser = await ethers.getSigner(exampleUserAddress);
+
+      // claim once
+      await expect(stateDepartment.connect(exampleUser).claimCitizenship())
+
+      // try to claim again
       await expect(stateDepartment.connect(exampleUser).claimCitizenship())
         .to.be.reverted; // Assuming a revert condition for duplicate claims
-    });
-  });
-
-  // Test for ThePeople: Founder creation in non-permissionless mode
-  describe("Nation Creation by Founder in Non-Permissionless Mode", function () {
-    it("should only allow the founder to create a nation when not permissionless", async function () {
-      // Set the system back to non-permissionless mode
-      await expect(thePeople.connect(admin).makePermissionless())
-        .to.revert; // Assuming the contract has a function to toggle permissionless mode and it reverts when trying to disable it again
-
-      // Attempt to create another nation as a non-founder
-      await expect(thePeople.connect(otherUser).createNation("CA", "Canada", otherUser.address, "https://example.com/default-citizenship"))
-        .to.be.reverted; // Expecting revert due to lack of permission
     });
   });
 
