@@ -34,6 +34,9 @@ contract ThePeople is AccessControl {
         address stateDepartment;
         address federalVoterRegistration;
         address founder;
+        address awards;
+        address federalTimelock;
+        address federalGovernor;
     }
 
     bool public isPermissionless;
@@ -62,7 +65,7 @@ contract ThePeople is AccessControl {
         address indexed federalVoterRegistration,
         address awards
     );
-    event GovernorCreated(
+    event JuristictionCreated(
         address indexed timelock,
         address indexed governor,
         string countryCode,
@@ -211,7 +214,6 @@ contract ThePeople is AccessControl {
             );
         }
 
-
         // Minimize Local variables
         {
             // Initialize FederalVoterRegistration
@@ -232,16 +234,6 @@ contract ThePeople is AccessControl {
         // Give StateDepartment MinterRole
         citizenship.grantRole((citizenship.MINTER_ROLE()), stateDepartment);
 
-        // Store Nation
-        nations[_symbol] = Nation(
-            _nation,
-            _symbol,
-            address(citizenship),
-            stateDepartment,
-            federalVoterRegistration,
-            founder
-        );
-
         // Deploy Awards
         Awards awards = Awards(clone(address(implementation.awards)));
         awards.initialize(address(this), string.concat("Awards for ", _nation));
@@ -255,6 +247,19 @@ contract ThePeople is AccessControl {
         // Mint the founder an award
         awards.mint(founder, 0, 1, "Founder of the Nation");
 
+        // Store Nation
+        nations[_symbol] = Nation(
+            _nation,
+            _symbol,
+            address(citizenship),
+            stateDepartment,
+            federalVoterRegistration,
+            founder,
+            address(awards),
+            federalTimelock,
+            federalGovernor
+        );
+
         // Renounce this contracts admin rights
         awards.renounceRole(DEFAULT_ADMIN_ROLE, address(this));
         citizenship.renounceRole(DEFAULT_ADMIN_ROLE, address(this));
@@ -263,7 +268,13 @@ contract ThePeople is AccessControl {
 
         emit NationCreated(address(citizenship), _nation, _symbol, founder);
         emit NationDetails(address(citizenship), stateDepartment, federalVoterRegistration, address(this));
-        emit GovernorCreated(federalTimelock, federalGovernor, _symbol, federalVoterRegistration, address(citizenship));
+        emit JuristictionCreated(
+            federalTimelock,
+            federalGovernor,
+            _symbol,
+            federalVoterRegistration,
+            address(citizenship)
+        );
     }
 
     function _doesNationExist(string memory _symbol) internal view returns (bool) {

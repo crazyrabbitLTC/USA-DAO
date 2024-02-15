@@ -5,7 +5,7 @@ import { deployThePeopleFixture } from "./ThePeople.fixture";
 import { CountryCodes, ThePeople, } from "../../types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe("ThePeople Contract", function () {
+describe.only("ThePeople Contract", function () {
   let admin: SignerWithAddress, otherAddress: SignerWithAddress,
     thePeople: ThePeople, countryCodes: CountryCodes;
   const countryCode = "US";
@@ -37,7 +37,10 @@ describe("ThePeople Contract", function () {
   it("should create a nation if the contract is permissionless", async function () {
     await expect(thePeople.togglePermissionless()).to.emit(thePeople, "IsCreationPermissionless").withArgs(true);
     // Mock country code for the test
-    await expect(thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI)).to.emit(thePeople, "NationCreated").to.emit(thePeople, "NationDetails");
+    await expect(thePeople.createNation(countryCode, admin.address, verifierAddress, defaultURI))
+    .to.emit(thePeople, "NationCreated")
+    .to.emit(thePeople, "NationDetails")
+    .to.emit(thePeople, "JuristictionCreated");
 
     const nation = await thePeople.nations(countryCode);
 
