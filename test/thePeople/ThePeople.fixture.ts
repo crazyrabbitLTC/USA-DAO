@@ -14,10 +14,15 @@ import type { SimpleFactory__factory } from "../../types/factories/SimpleFactory
 import type { VoterRegistration__factory } from "../../types/factories/VoterRegistration__factory";
 import type { VoterRegistration } from "../../types/VoterRegistration";
 
+import type { JuristictionTimelock } from "../../types/JuristictionTimelock"
+import type { JuristictionTimelock__factory } from "../../types/factories/JuristictionTimelock__factory";
+import type { Governor } from "../../types/Governor";
+import type { Governor__factory } from "../../types/factories/Governor__factory";
+
 
 import { deployAwardTokenFixture } from "../awardToken/AwardToken.fixture";
 import { deployCitizenshipWithRegistryFixture } from "../citizenship/CitizenshipWithRegistry.fixture";
-import { CitizenshipWithRegistry__factory, CommemorativeEdition, CommemorativeEdition__factory, CountryCodes__factory, StateDepartment, StateDepartment__factory } from "../../types";
+import { Awards, Awards__factory, CitizenshipWithRegistry__factory, CommemorativeEdition, CommemorativeEdition__factory, CountryCodes__factory, StateDepartment, StateDepartment__factory } from "../../types";
 import { CitizenshipWithRegistry } from "../../types/CitizenshipWithRegistry";
 import { CountryCodes } from "../../types/CountryCodes";
 
@@ -38,6 +43,15 @@ const stateDepartmentImpl = await stateDepartmentFactory.deploy() as StateDepart
 const commemorativeEditionFactory = await ethers.getContractFactory("CommemorativeEdition") as CommemorativeEdition__factory;
 const commemorativeEditionImpl = await commemorativeEditionFactory.deploy() as CommemorativeEdition;
 
+const juristictionTimelockFactory = await ethers.getContractFactory("JuristictionTimelock") as JuristictionTimelock__factory;
+const juristictionTimelockImpl = await juristictionTimelockFactory.deploy() as JuristictionTimelock;
+
+const governorFactory = await ethers.getContractFactory("Governor") as Governor__factory;
+const governorImpl = await governorFactory.deploy() as Governor;
+
+const awardTokenFactory = await ethers.getContractFactory("Awards") as Awards__factory;
+const awardTokenImpl = await awardTokenFactory.deploy() as Awards
+
   // Deploy the wrapper contract (VoterRegistration)
   const VoterRegistration = (await ethers.getContractFactory("VoterRegistration")) as VoterRegistration__factory;
   const voterRegistrationBase = (await VoterRegistration.deploy()) as VoterRegistration;
@@ -57,10 +71,12 @@ const commemorativeEditionImpl = await commemorativeEditionFactory.deploy() as C
     await stateDepartmentImpl.getAddress(),
     await voterRegistrationProxy.getAddress(),
     await commemorativeEditionImpl.getAddress(),
-    admin.address // todo: replace with actual award token address
+    await awardTokenImpl.getAddress(),
+    await juristictionTimelockImpl.getAddress(),
+    await governorImpl.getAddress()
   );
 
-  // voter registration is a proxy because anyone theoretically can deploy it, it's a destination for the token. 
+  // voter registration is a proxy because anyone theoretically can deploy it, it's a destination for the token.
   return {
     thePeople,
     admin,
@@ -68,6 +84,9 @@ const commemorativeEditionImpl = await commemorativeEditionFactory.deploy() as C
     countryCodes,
     citizenshipImpl,
     stateDepartmentImpl,
+    governorImpl,
+    awardTokenImpl,
+    juristictionTimelockImpl,
     voterRegistrationProxy,
     commemorativeEditionImpl,
   };

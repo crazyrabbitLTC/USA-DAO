@@ -43,7 +43,7 @@ contract Awards is
         _disableInitializers();
     }
 
-    function initialize(address defaultAdmin, address pauser, address minter, string memory uri) public initializer {
+    function initialize(address defaultAdmin, string memory uri) public initializer {
         __ERC1155_init(uri);
         __AccessControl_init();
         __ERC1155Pausable_init();
@@ -51,8 +51,8 @@ contract Awards is
         __ERC1155Supply_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
-        _grantRole(PAUSER_ROLE, pauser);
-        _grantRole(MINTER_ROLE, minter);
+        _grantRole(PAUSER_ROLE, defaultAdmin);
+        _grantRole(MINTER_ROLE, defaultAdmin);
     }
 
     function setURI(string memory newuri) public onlyRole(URI_UPDATE_ROLE) {
