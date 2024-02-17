@@ -93,6 +93,8 @@ contract ThePeople is AccessControl {
         implementation.voterRegistration = VoterRegistration(_voterRegistration);
         implementation.commemorativeEdition = CommemorativeEdition(payable(address(_commemorativeEdition)));
         implementation.awards = Awards(_awards);
+        implementation.timelock = JuristictionTimelock(payable(_timelock));
+        implementation.governor = Governor(payable(_governor));
 
         isPermissionless = false;
 

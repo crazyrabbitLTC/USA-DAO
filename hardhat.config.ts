@@ -3,6 +3,7 @@ import "hardhat-deploy";
 import type { HardhatUserConfig } from "hardhat/config";
 import { vars } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
+import "@nomicfoundation/hardhat-verify";
 
 import "./tasks/accounts";
 import "./tasks/lock";
@@ -24,6 +25,7 @@ const chainIds = {
   "polygon-mainnet": 137,
   "polygon-mumbai": 80001,
   sepolia: 11155111,
+  base: 8453,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -34,6 +36,9 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
       break;
     case "bsc":
       jsonRpcUrl = "https://bsc-dataseed1.binance.org";
+      break;
+    case "base":
+      jsonRpcUrl = "https://base-mainnet.g.alchemy.com/v2/" + alchemyApiKey;
       break;
     default:
       jsonRpcUrl = "https://" + chain + ".infura.io/v3/" + infuraApiKey;
@@ -64,6 +69,7 @@ const config: HardhatUserConfig = {
       polygon: vars.get("POLYGONSCAN_API_KEY", ""),
       polygonMumbai: vars.get("POLYGONSCAN_API_KEY", ""),
       sepolia: vars.get("ETHERSCAN_API_KEY", ""),
+      base: vars.get("BASESCAN_API_KEY", "")
     },
   },
   gasReporter: {
@@ -91,6 +97,7 @@ const config: HardhatUserConfig = {
       chainId: chainIds.ganache,
       url: "http://localhost:8545",
     },
+    base: getChainConfig("base"),
     arbitrum: getChainConfig("arbitrum-mainnet"),
     avalanche: getChainConfig("avalanche"),
     bsc: getChainConfig("bsc"),

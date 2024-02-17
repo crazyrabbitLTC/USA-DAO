@@ -5,7 +5,7 @@ import { deployThePeopleFixture } from "./ThePeople.fixture";
 import { CountryCodes, ThePeople, } from "../../types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe.only("ThePeople Contract", function () {
+describe("ThePeople Contract", function () {
   let admin: SignerWithAddress, otherAddress: SignerWithAddress,
     thePeople: ThePeople, countryCodes: CountryCodes;
   const countryCode = "US";

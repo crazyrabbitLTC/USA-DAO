@@ -28,6 +28,9 @@ async function readAndPrepareCountryData(): Promise<Country[]> {
     abbreviation: record["Alpha-2 code"]
   }));
 
+  const filePath = './savedCountries.json';
+  fs.writeFileSync(filePath, JSON.stringify(countries));
+
   return countries;
 }
 

@@ -46,6 +46,10 @@ contract StateDepartment is Initializable, AccessControlUpgradeable, ReentrancyG
 
     mapping(address => bool) public citizenshipClaimed;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _citizenshipTokenAddress,
         address _verifierAddress,

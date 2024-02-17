@@ -33,6 +33,10 @@ contract CommemorativeEdition is Initializable, AccessControlUpgradeable, EIP712
     error NoTokenOwned();
     error ContractPaused();
 
+    constructor() {
+        _disableInitializers();
+    }
+    
     function initialize(
         address _nftContractAddress,
         address _offChainSigner,

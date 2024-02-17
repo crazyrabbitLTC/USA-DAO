@@ -8,7 +8,7 @@ type Country = {
   abbreviation: string;
 };
 
-describe("CountryCodes Contract", function () {
+describe.only("CountryCodes Contract", function () {
   let admin: SignerWithAddress, otherUser: SignerWithAddress, countryCodes: CountryCodes;
 
   let fullCountryList: Country[];

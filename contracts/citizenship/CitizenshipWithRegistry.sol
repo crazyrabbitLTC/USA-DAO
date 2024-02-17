@@ -13,6 +13,9 @@ contract CitizenshipWithRegistry is Citizenship {
 
     error AddressesAndStatusesLengthMismatch();
 
+    constructor() {
+        _disableInitializers();
+    }
     // Initializes the contract, sets up initial allowlisted destinations, and configures roles
     function initialize(
         address initialAuthority,

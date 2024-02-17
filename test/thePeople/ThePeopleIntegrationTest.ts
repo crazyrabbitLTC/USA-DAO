@@ -15,7 +15,7 @@ type NationDetails = [string, string, string, string, string, string] & {
   federalVoterRegistration: string;
   founder: string;
 };
-describe.only("ThePeople Integration Test", function () {
+describe("ThePeople Integration Test", function () {
   let thePeople: ThePeople, countryCodes: CountryCodes, citizenshipImpl: CitizenshipWithRegistry, stateDepartmentImpl: StateDepartment, voterRegistrationProxy: VoterRegistration;
   let admin: SignerWithAddress, otherUser: SignerWithAddress;
   let signers: SignerWithAddress[];
